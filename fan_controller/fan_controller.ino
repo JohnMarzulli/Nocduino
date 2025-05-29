@@ -3,10 +3,12 @@
 // using the "BOARDS MANAGER"
 //
 // You will need to install the following packages:
+// "ArduinoGraphics" by Arduino - https://github.com/arduino-libraries/ArduinoGraphics
 // "AM2303-Sensor" by Frank Hafele - https://github.com/hasenradball/AM2302-Sensor
 // "Button2" by Lennart Hunnigs - https://github.com/LennartHennigs/Button2
 // "Rotary" by KAthiR - https://github.com/skathir38/Rotary
 
+#include "ArduinoGraphics.h";
 #include "Arduino_LED_Matrix.h";
 #include <AM2302-Sensor.h>;
 #include "Rotary.h";
@@ -19,10 +21,46 @@ FanManager fanManager(67);
 /*** LED MATRIX ***/
 ArduinoLEDMatrix matrix;
 uint8_t frame[8][12];
+uint32_t timeofLastScroll = 0;
+
 
 void render(
   uint8_t frameToShow[8][12]) {
   matrix.renderBitmap(frameToShow, 8, 12);
+}
+
+void setupMatrix() {
+  matrix.begin();
+
+  matrix.beginDraw();
+  matrix.stroke(0xFFFFFFFF);
+  // add some static text
+  // will only show "UNO" (not enough space on the display)
+  const char text[] = "UNO r4";
+  matrix.textFont(Font_4x6);
+  matrix.beginText(0, 1, 0xFFFFFF);
+  matrix.println(text);
+  matrix.endText();
+
+  matrix.endDraw();
+
+  delay(2000);
+}
+
+void serviceLedMatrix() {
+  matrix.beginDraw();
+
+  matrix.stroke(0xFFFFFFFF);
+  matrix.textScrollSpeed(50);
+
+  // add the text
+  const char text[] = "    Hello World!    ";
+  matrix.textFont(Font_5x7);
+  matrix.beginText(0, 1, 0xFFFFFF);
+  matrix.println(text);
+  matrix.endText(SCROLL_LEFT);
+
+  matrix.endDraw();
 }
 
 /*** TEMP PROBE ***/
@@ -193,9 +231,11 @@ void setup() {
   setupTempProbe();
   setupRotaryEncoderAndButton();
   setupPwmFan();
+  setupMatrix();
 }
 
 void loop() {
   serviceTempProbe();
   serviceFan();
+  serviceLedMatrix();
 }
