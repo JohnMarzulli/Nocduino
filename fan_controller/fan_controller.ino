@@ -11,24 +11,14 @@
 #include <AM2302-Sensor.h>;
 #include "Rotary.h";
 #include "Button2.h";
+#include "renderer.h";
+#include "fanManager.h";;
+
+FanManager fanManager(67);
 
 /*** LED MATRIX ***/
 ArduinoLEDMatrix matrix;
 uint8_t frame[8][12];
-
-void clearFrame(
-  uint8_t frameToChange[8][12]) {
-  memset(frameToChange, 0, sizeof(uint8_t) * 8 * 12);
-}
-
-bool isBlinkFrame() {
-  return (millis() % 1000) < 500;
-}
-
-void setStatusIndicator(
-  uint8_t frameToChange[8][12]) {
-  frameToChange[0][0] = (int)isBlinkFrame();
-}
 
 void render(
   uint8_t frameToShow[8][12]) {
@@ -67,8 +57,8 @@ void serviceTempProbe() {
   Serial.print("\n\nstatus of sensor read(): ");
   Serial.println(status);
 
-  Serial.print("Temperature: ");
-  Serial.println(am2302.get_Temperature());
+  int currentTemp = am2302.get_Temperature();
+  fanManager.updateTemperature(currentTemp);
 
   Serial.print("Humidity:    ");
   Serial.println(am2302.get_Humidity());
@@ -100,8 +90,8 @@ Button2 b;
 void setupRotaryEncoderAndButton() {
   r.begin(ROTARY_PIN1, ROTARY_PIN2, CLICKS_PER_STEP);
   r.setChangedHandler(rotate);
-  r.setLeftRotationHandler(showDirection);
-  r.setRightRotationHandler(showDirection);
+  r.setLeftRotationHandler(rotateCounterClockwise);
+  r.setRightRotationHandler(rotateClockwise);
 
   b.begin(BUTTON_PIN);
   b.setTapHandler(click);
@@ -113,8 +103,12 @@ void rotate(Rotary& r) {
 }
 
 // on left or right rotation
-void showDirection(Rotary& r) {
-  Serial.println(r.directionToString(r.getDirection()));
+void rotateCounterClockwise(Rotary& r) {
+  fanManager.decreaseTargetTemperature();
+}
+
+void rotateClockwise(Rotary& r) {
+  fanManager.increaseTargetTemperature();
 }
 
 // single click
@@ -175,7 +169,7 @@ void serviceFan() {
 
     // This should be one of the only two variables you really
     // have to mess with in addition to the period:
-    int max_pulses = 1000;
+    int max_pulses = fanManager.isFanRunning() ? 1000 : 0;
 
     // Now we have a measurement of our velocity or "speed" in terms
     // of the number of rotations. So now we scale the motor speed
