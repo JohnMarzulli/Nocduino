@@ -14,7 +14,9 @@
 #include "Rotary.h";
 #include "Button2.h";
 #include "renderer.h";
-#include "fanManager.h";;
+#include "fanManager.h";
+
+const int SERIAL_SPEED = 9600;
 
 FanManager fanManager(67);
 
@@ -36,7 +38,7 @@ void setupMatrix() {
   matrix.stroke(0xFFFFFFFF);
   // add some static text
   // will only show "UNO" (not enough space on the display)
-  const char text[] = "UNO r4";
+  const char text[] = "FAN";
   matrix.textFont(Font_4x6);
   matrix.beginText(0, 1, 0xFFFFFF);
   matrix.println(text);
@@ -47,14 +49,17 @@ void setupMatrix() {
   delay(2000);
 }
 
-void serviceLedMatrix() {
+void serviceLedMatrix(
+  int currentTemp,
+  int targetTemp) {
   matrix.beginDraw();
 
   matrix.stroke(0xFFFFFFFF);
-  matrix.textScrollSpeed(50);
+  matrix.textScrollSpeed(200);
 
   // add the text
-  const char text[] = "    Hello World!    ";
+  String text = String(currentTemp);
+  //const char text[] = "    Hello World!    ";
   matrix.textFont(Font_5x7);
   matrix.beginText(0, 1, 0xFFFFFF);
   matrix.println(text);
@@ -90,7 +95,7 @@ void setupTempProbe() {
   }
 }
 
-void serviceTempProbe() {
+int serviceTempProbe() {
   auto status = am2302.read();
   Serial.print("\n\nstatus of sensor read(): ");
   Serial.println(status);
@@ -101,6 +106,8 @@ void serviceTempProbe() {
   Serial.print("Humidity:    ");
   Serial.println(am2302.get_Humidity());
   delay(5000);
+
+  return currentTemp;
 }
 
 /*** ROTARY ENCODER ***/
@@ -226,16 +233,16 @@ void serviceFan() {
 /*** MAIN ***/
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(SERIAL_SPEED); //115200);
 
-  setupTempProbe();
-  setupRotaryEncoderAndButton();
-  setupPwmFan();
+  //setupTempProbe();
+  //setupRotaryEncoderAndButton();
+  //setupPwmFan();
   setupMatrix();
 }
 
 void loop() {
-  serviceTempProbe();
-  serviceFan();
-  serviceLedMatrix();
+  //int currentTemp = serviceTempProbe();
+  //serviceFan();
+  serviceLedMatrix(69 /*currentTemp*/, 67);
 }
