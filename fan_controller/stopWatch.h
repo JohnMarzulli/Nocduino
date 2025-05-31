@@ -22,6 +22,17 @@ public:
     return false;
   }
 
+  bool reset() {
+    timerStart = millis();
+  }
+
+  bool isWaiting() {
+    uint32_t currentTime = millis();
+    uint32_t delta = currentTime - timerStart;
+
+    return delta <= delay;
+  }
+
 private:
   int delay;
   uint32_t timerStart;
