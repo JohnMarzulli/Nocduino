@@ -4,19 +4,23 @@
 //
 // You will need to install the following packages:
 // "ArduinoGraphics" by Arduino - https://github.com/arduino-libraries/ArduinoGraphics
-// "AM2303-Sensor" by Frank Hafele - https://github.com/hasenradball/AM2302-Sensor
+// "DHT Sensor Library" by AdaFruit - https://github.com/adafruit/DHT-sensor-library
 // "Button2" by Lennart Hunnigs - https://github.com/LennartHennigs/Button2
 // "Rotary" by KAthiR - https://github.com/skathir38/Rotary
 
 #include "ArduinoGraphics.h";
 #include "Arduino_LED_Matrix.h";
-#include <AM2302-Sensor.h>;
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
 #include "Rotary.h";
 #include "Button2.h";
 #include "renderer.h";
 #include "fanManager.h";
+#include "stopWatch.h"
 
 const int SERIAL_SPEED = 9600;
+const int TEMP_SENSOR_DIGITAL_PIN = 2;
 
 FanManager fanManager(67);
 
@@ -24,7 +28,6 @@ FanManager fanManager(67);
 ArduinoLEDMatrix matrix;
 uint8_t frame[8][12];
 uint32_t timeofLastScroll = 0;
-
 
 void render(
   uint8_t frameToShow[8][12]) {
@@ -58,8 +61,7 @@ void serviceLedMatrix(
   matrix.textScrollSpeed(200);
 
   // add the text
-  String text = String(currentTemp);
-  //const char text[] = "    Hello World!    ";
+  String text = String(currentTemp) + String("F") + " / " + String(targetTemp) + "F";
   matrix.textFont(Font_5x7);
   matrix.beginText(0, 1, 0xFFFFFF);
   matrix.println(text);
@@ -70,44 +72,68 @@ void serviceLedMatrix(
 
 /*** TEMP PROBE ***/
 
-// Docs: https://github.com/hasenradball/AM2302-Sensor
-// https://www.instructables.com/Arduino-and-DHT22-AM2302-Temperature-Measurement/
+// https://www.amazon.com/Replacement-Temperature-Humidity-Electronic-Practice/dp/B0DTHP4FGC/ref=sr_1_3_sspa?crid=32O8IXMXV11JB&dib=eyJ2IjoiMSJ9.Xs7bm5IGFitULL4ku2MBsb8h3E78np-GC6ppp-xfNQpUlxZnPwWp6KdplGjEXLUPp25g8CN1pHuuvrm_bgbu3OXJfQgaigs7d0sT5UdM8W2UBQXWDFpD3zeyHe-H2Hsd6NHX9vuQohMJ1QR0uH2D1lU0d6qoYcBhVb2oJmbohVUme-2uinsvctS8Zpnx1iY_Q5CqANOfXinE0U4g1YnEkgNUygHX0RiUdMRREVctIN1wXCo2oc_iGjomSHvsvbNPM6W-eUFY3OwHPax_ZPWJQh1JpgyLzOVu3h0WsoIGYCE.tQwCPgx7FJj9ET6APlQ34G-ZAJNtxumpCPmfGVxLQ0c&dib_tag=se&keywords=am2302&qid=1748717584&sprefix=am2302%2Caps%2C153&sr=8-3-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1
+// This unit already has the pull-up resistor on the board.
+// Wiring:
+// "+""  -> Arduino 3V
+// "out" -> Arduino Digital Pin 2
+// "-"   -> Arduino GND
+// Docs: https://github.com/adafruit/DHT-sensor-library/blob/master/examples/DHT_Unified_Sensor/DHT_Unified_Sensor.ino
 
-constexpr unsigned int SENSOR_PIN{ 7U };
-AM2302::AM2302_Sensor am2302{ SENSOR_PIN };
+
+#define DHTPIN 2       // Digital pin connected to the DHT sensor
+#define DHTTYPE DHT22  // DHT 22 (AM2302)
+// See guide for details on sensor wiring and usage:
+//   https://learn.adafruit.com/dht/overview
+
+DHT_Unified dht(DHTPIN, DHTTYPE);
+
+StopWatch probeInterval(2000);
+
+int getFarenheitFromCelsius(
+  float tempInCelsius) {
+  return (int)((tempInCelsius * 9 / 5) + 32);
+}
 
 void setupTempProbe() {
-  while (!Serial) {
-    yield();
-  }
-  Serial.print(F("\n >>> AM2302-Sensor_Example <<<\n\n"));
-
-  // set pin and check for sensor
-  if (am2302.begin()) {
-    // this delay is needed to receive valid data,
-    // when the loop directly read again
-    delay(3000);
-  } else {
-    while (true) {
-      Serial.println("Error: sensor check. => Please check sensor connection!");
-      delay(10000);
-    }
-  }
+  dht.begin();
+  sensor_t sensor;
+  dht.temperature().getSensor(&sensor);
+  // Print humidity sensor details.
+  dht.humidity().getSensor(&sensor);
+  // Set delay between sensor readings based on sensor details.
+  probeInterval = StopWatch(sensor.min_delay / 1000);
 }
 
 int serviceTempProbe() {
-  auto status = am2302.read();
-  Serial.print("\n\nstatus of sensor read(): ");
-  Serial.println(status);
+  float currentTemp = -255;
+  // Delay between measurements.
+  if (!probeInterval.shouldRun()) {
+    return fanManager.getCurrentTemperature();
+  }
 
-  int currentTemp = am2302.get_Temperature();
-  fanManager.updateTemperature(currentTemp);
+  // Get temperature event and print its value.
+  sensors_event_t event;
+  dht.temperature().getEvent(&event);
+  if (isnan(event.temperature)) {
+    Serial.println(F("Error reading temperature!"));
+  } else {
+    Serial.print(F("Temperature: "));
+    currentTemp = event.temperature;
+    Serial.print(currentTemp);
+    Serial.println(F("°C"));
+  }
+  // Get humidity event and print its value.
+  dht.humidity().getEvent(&event);
+  if (isnan(event.relative_humidity)) {
+    Serial.println(F("Error reading humidity!"));
+  } else {
+    Serial.print(F("Humidity: "));
+    Serial.print(event.relative_humidity);
+    Serial.println(F("%"));
+  }
 
-  Serial.print("Humidity:    ");
-  Serial.println(am2302.get_Humidity());
-  delay(5000);
-
-  return currentTemp;
+  return getFarenheitFromCelsius(currentTemp);
 }
 
 /*** ROTARY ENCODER ***/
@@ -233,16 +259,17 @@ void serviceFan() {
 /*** MAIN ***/
 
 void setup() {
-  Serial.begin(SERIAL_SPEED); //115200);
+  Serial.begin(SERIAL_SPEED);  //115200);
 
-  //setupTempProbe();
+  setupTempProbe();
   //setupRotaryEncoderAndButton();
   //setupPwmFan();
   setupMatrix();
 }
 
 void loop() {
-  //int currentTemp = serviceTempProbe();
+  int currentTemp = serviceTempProbe();
+  fanManager.updateTemperature(currentTemp);
   //serviceFan();
-  serviceLedMatrix(69 /*currentTemp*/, 67);
+  serviceLedMatrix(currentTemp, fanManager.getTargetTemperature());
 }
