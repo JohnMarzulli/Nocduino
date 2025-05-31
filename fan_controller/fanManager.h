@@ -35,6 +35,10 @@ public:
     return targetTemperature;
   }
 
+  int getCurrentTemperature() {
+    return currentTemperature;
+  }
+
   void updateTemperature(int newTemperature) {
     int fanStartTemperature = targetTemperature + 2;
     int fanStopTemperature = targetTemperature - 2;
