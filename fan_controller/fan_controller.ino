@@ -50,22 +50,32 @@ void setupMatrix() {
   matrix.endDraw();
 
   delay(2000);
+
+  matrix.beginDraw();
+  matrix.stroke(0xFFFFFFFF);
+  // add some static text
+  // will only show "UNO" (not enough space on the display)
+  matrix.textFont(Font_4x6);
+  matrix.beginText(0, 1, 0xFFFFFF);
+  matrix.println("      ");
+  matrix.endText();
+
+  matrix.endDraw();
 }
 
 void serviceLedMatrix(
-  int currentTemp,
-  int targetTemp) {
+  int tempToShow) {
   matrix.beginDraw();
 
   matrix.stroke(0xFFFFFFFF);
   matrix.textScrollSpeed(200);
 
   // add the text
-  String text = String(currentTemp) + String("F") + " / " + String(targetTemp) + "F";
+  String text = String(tempToShow); // + String("F");
   matrix.textFont(Font_5x7);
   matrix.beginText(0, 1, 0xFFFFFF);
   matrix.println(text);
-  matrix.endText(SCROLL_LEFT);
+  matrix.endText(NO_SCROLL); //  SCROLL_LEFT);
 
   matrix.endDraw();
 }
@@ -145,7 +155,7 @@ int serviceTempProbe() {
 
 // CLK = [pin 3]
 // DT = [pin 4]
-// Button = [pin 5]
+// SW = [pin 5] (Button)
 // + = [Pin 5V]
 // GND = [pin GND]
 
@@ -157,45 +167,45 @@ int serviceTempProbe() {
 
 Rotary r;
 Button2 b;
+StopWatch showNewTarget(1000);
 
-void setupRotaryEncoderAndButton() {
+void setupRotaryEncoder() {
+  Serial.println("Setup rotary encoder");
+
   r.begin(ROTARY_PIN1, ROTARY_PIN2, CLICKS_PER_STEP);
-  r.setChangedHandler(rotate);
-  r.setLeftRotationHandler(rotateCounterClockwise);
-  r.setRightRotationHandler(rotateClockwise);
+  r.setLeftRotationHandler(increaseTargetTemp);
+  r.setRightRotationHandler(decreaseTargetTemp);
 
   b.begin(BUTTON_PIN);
   b.setTapHandler(click);
-  b.setLongClickHandler(resetPosition);
-}
 
-void rotate(Rotary& r) {
-  Serial.println(r.getPosition());
-}
-
-// on left or right rotation
-void rotateCounterClockwise(Rotary& r) {
-  fanManager.decreaseTargetTemperature();
-}
-
-void rotateClockwise(Rotary& r) {
-  fanManager.increaseTargetTemperature();
-}
-
-// single click
-void click(Button2& btn) {
-  Serial.println("Click!");
-}
-
-// long click
-void resetPosition(Button2& btn) {
-  r.resetPosition();
-  Serial.println("Reset!");
+  Serial.println("Handlers set.");
 }
 
 void serviceRotaryEncoder() {
   r.loop();
   b.loop();
+}
+
+/////////////////////////////////////////////////////////////////
+
+void increaseTargetTemp(Rotary& r) {
+  fanManager.increaseTargetTemperature();
+  Serial.print("targetTemp() => ");
+  Serial.println(fanManager.getTargetTemperature());
+  showNewTarget.reset();
+}
+
+void decreaseTargetTemp(Rotary& r) {
+  fanManager.decreaseTargetTemperature();
+  Serial.print("targetTemp() => ");
+  Serial.println(fanManager.getTargetTemperature());
+  showNewTarget.reset();
+}
+
+// single click
+void click(Button2& btn) {
+  Serial.println("Click!");
 }
 
 /*** FAN CONTROLLER ***/
@@ -262,7 +272,7 @@ void setup() {
   Serial.begin(SERIAL_SPEED);  //115200);
 
   setupTempProbe();
-  //setupRotaryEncoderAndButton();
+  setupRotaryEncoder();
   //setupPwmFan();
   setupMatrix();
 }
@@ -270,6 +280,13 @@ void setup() {
 void loop() {
   int currentTemp = serviceTempProbe();
   fanManager.updateTemperature(currentTemp);
+  serviceRotaryEncoder();
   //serviceFan();
-  serviceLedMatrix(currentTemp, fanManager.getTargetTemperature());
+
+  int tempToShow = currentTemp;
+  if (showNewTarget.isWaiting()) {
+    tempToShow = fanManager.getTargetTemperature();
+  }
+
+  serviceLedMatrix(tempToShow);
 }
