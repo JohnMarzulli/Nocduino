@@ -39,9 +39,23 @@ public:
     return currentTemperature;
   }
 
+  float getCutOffProportion() {
+    float fanStopTemperature = targetTemperature - targetDelta;
+    float fanStartTemperature = targetTemperature + targetDelta;
+
+    if (currentTemperature < fanStopTemperature) {
+      return 0.0;
+    }
+
+    float delta = currentTemperature - fanStopTemperature;
+    float proportion = delta / (targetDelta * 2.0);
+
+    return proportion;
+  }
+
   void updateTemperature(int newTemperature) {
-    int fanStartTemperature = targetTemperature + 2;
-    int fanStopTemperature = targetTemperature - 2;
+    int fanStartTemperature = targetTemperature + targetDelta;
+    int fanStopTemperature = targetTemperature - targetDelta;
 
     currentTemperature = newTemperature;
 
@@ -59,6 +73,7 @@ private:
   int currentTemperature;
 
   bool isFanOn = false;
+  const int targetDelta = 2;
 };
 
 #endif  // FAN_CONTROLLER_RENDERER_H
