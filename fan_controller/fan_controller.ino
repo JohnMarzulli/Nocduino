@@ -71,11 +71,11 @@ void serviceLedMatrix(
   matrix.textScrollSpeed(200);
 
   // add the text
-  String text = String(tempToShow); // + String("F");
+  String text = String(tempToShow);  // + String("F");
   matrix.textFont(Font_5x7);
   matrix.beginText(0, 1, 0xFFFFFF);
   matrix.println(text);
-  matrix.endText(NO_SCROLL); //  SCROLL_LEFT);
+  matrix.endText(NO_SCROLL);  //  SCROLL_LEFT);
 
   matrix.endDraw();
 }
@@ -90,9 +90,8 @@ void serviceLedMatrix(
 // "-"   -> Arduino GND
 // Docs: https://github.com/adafruit/DHT-sensor-library/blob/master/examples/DHT_Unified_Sensor/DHT_Unified_Sensor.ino
 
-
-#define DHTPIN 2       // Digital pin connected to the DHT sensor
-#define DHTTYPE DHT22  // DHT 22 (AM2302)
+const int DHTPIN = 2;       // Digital pin connected to the DHT sensor
+const int DHTTYPE = DHT22;  // DHT 22 (AM2302)
 // See guide for details on sensor wiring and usage:
 //   https://learn.adafruit.com/dht/overview
 
@@ -159,11 +158,11 @@ int serviceTempProbe() {
 // + = [Pin 5V]
 // GND = [pin GND]
 
-#define ROTARY_PIN1 3
-#define ROTARY_PIN2 4
-#define BUTTON_PIN 5
-
-#define CLICKS_PER_STEP 4  // this number depends on your rotary encoder
+const int ROTARY_PIN1 = 3;
+const int ROTARY_PIN2 = 4;
+const int BUTTON_PIN = 5;
+const int ROTARY_POWER_PIN = 8;
+const int CLICKS_PER_STEP = 4;  // this number depends on your rotary encoder
 
 Rotary r;
 Button2 b;
@@ -171,6 +170,10 @@ StopWatch showNewTarget(1000);
 
 void setupRotaryEncoder() {
   Serial.println("Setup rotary encoder");
+
+  pinMode(ROTARY_POWER_PIN, OUTPUT);
+  digitalWrite(ROTARY_POWER_PIN, HIGH);
+  delay(100);  // give it some time to power up
 
   r.begin(ROTARY_PIN1, ROTARY_PIN2, CLICKS_PER_STEP);
   r.setLeftRotationHandler(increaseTargetTemp);
@@ -212,8 +215,8 @@ void click(Button2& btn) {
 
 // https://www.reddit.com/r/arduino/comments/14nung1/expertise_needed_for_4pin_pwm_powering/
 
-#define PWN_PULSE_IN 2  // only 2 or 3 can be used as external intr's
-#define PWN_MOTOR_OUT 5
+const int PWN_PULSE_IN = 2;   // Green wire. Only 2 or 3 can be used as external intr's
+const int PWN_MOTOR_OUT = 9;  // Blue wire
 
 int rotations = 0;
 int motor_pwm = 128;
@@ -236,6 +239,9 @@ void serviceFan() {
 
   // this is for a period of 1 second (1000 ms). Adjust as needed:
   uint32_t period = 1000;
+  const int maxPulses = 512;
+  const int minPulses = 128;
+  const int stoppedPulses = 0;
 
   // Get the current pulse counter and reset it to 0 if we have
   // finished a period.
@@ -248,20 +254,30 @@ void serviceFan() {
     rotations = 0;           // clear the counter for the next period
     interrupts();            // re-enable interrupts again
 
+    bool isRunning = fanManager.isFanRunning();
+
+    Serial.print(F("serviceFan(): Running = "));
+    Serial.println(isRunning);
+
     // This should be one of the only two variables you really
     // have to mess with in addition to the period:
-    int max_pulses = fanManager.isFanRunning() ? 1000 : 0;
+    float proportion = fanManager.getCutOffProportion();
+    //int targetPulses = (int)(((maxPulses - minPulses) * proportion) + minPulses);
 
-    // Now we have a measurement of our velocity or "speed" in terms
-    // of the number of rotations. So now we scale the motor speed
-    // up or down relative to the desired speed:
-    motor_pwm = map(pulses,
-                    0, max_pulses,  // the range of rotation pulses from 0 - ???
-                    255, 0          // the inverted range of analogWrite(...)
-                                    // output from 0 to 255 (255 to 0 in this case)
-    );
+    int targetPulses = proportion * maxPulses;
 
-    analogWrite(PWN_MOTOR_OUT, motor_pwm);
+    targetPulses = isRunning ? targetPulses : stoppedPulses;
+
+    Serial.print(F("serviceFan(): targetPulses = "));
+    Serial.println(targetPulses);
+
+    Serial.print(F("serviceFan(): proportion = "));
+    Serial.println(proportion);
+
+    Serial.print(F("serviceFan(): motor_pwm = "));
+    Serial.println(motor_pwm);
+
+    analogWrite(PWN_MOTOR_OUT, targetPulses);  //motor_pwm);
   }
 }
 
@@ -281,7 +297,7 @@ void loop() {
   int currentTemp = serviceTempProbe();
   fanManager.updateTemperature(currentTemp);
   serviceRotaryEncoder();
-  //serviceFan();
+  serviceFan();
 
   int tempToShow = currentTemp;
   if (showNewTarget.isWaiting()) {
