@@ -215,11 +215,11 @@ void click(Button2& btn) {
 
 // https://www.reddit.com/r/arduino/comments/14nung1/expertise_needed_for_4pin_pwm_powering/
 
-const int PWN_PULSE_IN = 2;   // Green wire. Only 2 or 3 can be used as external intr's
+const int PWN_PULSE_IN = 7;   // Green wire. Only 2 or 3 can be used as external intr's
 const int PWN_MOTOR_OUT = 9;  // Blue wire
 
 int rotations = 0;
-int motor_pwm = 128;
+int motorPwm = 128;
 
 void pulse_isr() {
   rotations++;
@@ -227,7 +227,7 @@ void pulse_isr() {
 
 void setupPwmFan() {
   pinMode(PWN_MOTOR_OUT, OUTPUT);
-  analogWrite(PWN_MOTOR_OUT, motor_pwm);
+  analogWrite(PWN_MOTOR_OUT, motorPwm);
 
   pinMode(PWN_PULSE_IN, INPUT_PULLUP);
   int intr = digitalPinToInterrupt(PWN_PULSE_IN);
@@ -274,8 +274,8 @@ void serviceFan() {
     Serial.print(F("serviceFan(): proportion = "));
     Serial.println(proportion);
 
-    Serial.print(F("serviceFan(): motor_pwm = "));
-    Serial.println(motor_pwm);
+    Serial.print(F("serviceFan(): motorPwm = "));
+    Serial.println(motorPwm);
 
     analogWrite(PWN_MOTOR_OUT, targetPulses);  //motor_pwm);
   }
@@ -289,7 +289,7 @@ void setup() {
 
   setupTempProbe();
   setupRotaryEncoder();
-  //setupPwmFan();
+  setupPwmFan();
   setupMatrix();
 }
 
