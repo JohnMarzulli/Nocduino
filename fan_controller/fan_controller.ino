@@ -3,13 +3,15 @@
 // using the "BOARDS MANAGER"
 //
 // You will need to install the following packages:
-// "ArduinoGraphics" by Arduino - https://github.com/arduino-libraries/ArduinoGraphics
+// "MD_Parola" by majicDesigns - https://github.com/MajicDesigns/MD_Parola
+//                               https://github.com/MajicDesigns/MD_MAX72XX/blob/main/examples/MD_MAX72xx_Test/MD_MAX72xx_Test.ino
 // "DHT Sensor Library" by AdaFruit - https://github.com/adafruit/DHT-sensor-library
 // "Button2" by Lennart Hunnigs - https://github.com/LennartHennigs/Button2
 // "Rotary" by KAthiR - https://github.com/skathir38/Rotary
 
-#include "ArduinoGraphics.h";
-#include "Arduino_LED_Matrix.h";
+#include <MD_Parola.h>
+#include <MD_MAX72xx.h>
+#include <SPI.h>
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <DHT_U.h>
@@ -20,64 +22,41 @@
 #include "stopWatch.h"
 
 const int SERIAL_SPEED = 9600;
-const int TEMP_SENSOR_DIGITAL_PIN = 2;
 
 FanManager fanManager(67);
 
 /*** LED MATRIX ***/
-ArduinoLEDMatrix matrix;
-uint8_t frame[8][12];
-uint32_t timeofLastScroll = 0;
+// https://lastminuteengineers.com/max7219-dot-matrix-arduino-tutorial/
+#define HARDWARE_TYPE MD_MAX72XX::FC16_HW
+const int MAX_DEVICES = 4;
+const int CS_PIN = 3;
 
-void render(
-  uint8_t frameToShow[8][12]) {
-  matrix.renderBitmap(frameToShow, 8, 12);
-}
+MD_Parola myDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
+int lastTempShown = 0;
 
 void setupMatrix() {
-  matrix.begin();
+  myDisplay.begin();
 
-  matrix.beginDraw();
-  matrix.stroke(0xFFFFFFFF);
-  // add some static text
-  // will only show "UNO" (not enough space on the display)
-  const char text[] = "FAN";
-  matrix.textFont(Font_4x6);
-  matrix.beginText(0, 1, 0xFFFFFF);
-  matrix.println(text);
-  matrix.endText();
-
-  matrix.endDraw();
-
-  delay(2000);
-
-  matrix.beginDraw();
-  matrix.stroke(0xFFFFFFFF);
-  // add some static text
-  // will only show "UNO" (not enough space on the display)
-  matrix.textFont(Font_4x6);
-  matrix.beginText(0, 1, 0xFFFFFF);
-  matrix.println("      ");
-  matrix.endText();
-
-  matrix.endDraw();
+  myDisplay.setIntensity(0);
+  myDisplay.displayClear();
 }
 
 void serviceLedMatrix(
   int tempToShow) {
-  matrix.beginDraw();
 
-  matrix.stroke(0xFFFFFFFF);
-  matrix.textScrollSpeed(200);
+  bool isBlink = (millis() % 1000) <= 500;
 
-  // add the text
-  String text = String(tempToShow);  // + String("F");
-  matrix.textFont(Font_5x7);
-  matrix.beginText(0, 1, 0xFFFFFF);
-  matrix.println(text);
-  matrix.endText(NO_SCROLL);  //  SCROLL_LEFT);
+  if (tempToShow != lastTempShown) {
+    myDisplay.displayClear();
+    myDisplay.setIntensity(0);
+    myDisplay.setTextAlignment(PA_CENTER);
+    // add the text
+    String text = String(tempToShow);  // + String("F");
+    myDisplay.print(text);
+    lastTempShown = tempToShow;
+  }
 
-  matrix.endDraw();
+  myDisplay.getGraphicObject()->setPoint(0, 0, isBlink);
 }
 
 /*** TEMP PROBE ***/
@@ -152,15 +131,15 @@ int serviceTempProbe() {
 // https://github.com/skathir38/Rotary/blob/main/examples/SimpleCounterWithButton/SimpleCounterWithButton.ino
 // https://github.com/LennartHennigs/Button2
 
-// CLK = [pin 3]
+// CLK = [pin 5]
 // DT = [pin 4]
-// SW = [pin 5] (Button)
+// SW = [pin 6] (Button)
 // + = [Pin 5V]
 // GND = [pin GND]
 
-const int ROTARY_PIN1 = 3;
+const int ROTARY_PIN1 = 5;
 const int ROTARY_PIN2 = 4;
-const int BUTTON_PIN = 5;
+const int BUTTON_PIN = 6;
 const int ROTARY_POWER_PIN = 8;
 const int CLICKS_PER_STEP = 4;  // this number depends on your rotary encoder
 
