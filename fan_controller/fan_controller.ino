@@ -33,6 +33,9 @@ const int CS_PIN = 3;
 
 MD_Parola myDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 int lastTempShown = 0;
+float lastProportionSet = 0.0;
+
+int serialSpamLimiter = 0;
 
 void setupMatrix() {
   myDisplay.begin();
@@ -42,8 +45,13 @@ void setupMatrix() {
 }
 
 void serviceLedMatrix(
-  int tempToShow) {
+  int tempToShow,
+  float fanPowerProportion) {
 
+  fanPowerProportion = fanPowerProportion >= 1.0 ? 1.0 : fanPowerProportion;
+  fanPowerProportion = fanPowerProportion <= 0.0 ? 0.0 : fanPowerProportion;
+
+  float ledsToShow = (fanPowerProportion * 8.0);
   bool isBlink = (millis() % 1000) <= 500;
 
   if (tempToShow != lastTempShown) {
@@ -56,7 +64,24 @@ void serviceLedMatrix(
     lastTempShown = tempToShow;
   }
 
-  myDisplay.getGraphicObject()->setPoint(0, 0, isBlink);
+  ++serialSpamLimiter;
+
+  if (serialSpamLimiter == 5000) {
+    Serial.print(F("fanPowerProportion: "));
+    Serial.println(fanPowerProportion);
+    Serial.print(F("LEDS to show: "));
+    Serial.println(ledsToShow);
+
+    serialSpamLimiter = 0;
+  }
+
+  for (int ledIndex = 0; ledIndex <= 7; ++ledIndex) {
+    myDisplay.getGraphicObject()->setPoint(7 - ledIndex, 0, ledIndex <= (ledsToShow - 1));
+  }
+
+  if (ledsToShow <= 0.1) {
+    myDisplay.getGraphicObject()->setPoint(7, 0, isBlink);
+  }
 }
 
 /*** TEMP PROBE ***/
@@ -213,7 +238,7 @@ void setupPwmFan() {
   attachInterrupt(intr, pulse_isr, FALLING);
 }
 
-void serviceFan() {
+float serviceFan() {
   static uint32_t timer_start = millis();
 
   // this is for a period of 1 second (1000 ms). Adjust as needed:
@@ -247,17 +272,26 @@ void serviceFan() {
 
     targetPulses = isRunning ? targetPulses : stoppedPulses;
 
+    float effectiveProportion = (float)targetPulses  / (float)maxPulses;
+
     Serial.print(F("serviceFan(): targetPulses = "));
     Serial.println(targetPulses);
 
     Serial.print(F("serviceFan(): proportion = "));
     Serial.println(proportion);
 
+    Serial.print(F("serviceFan(): effectiveProportion = "));
+    Serial.println(effectiveProportion);
+
     Serial.print(F("serviceFan(): motorPwm = "));
     Serial.println(motorPwm);
 
     analogWrite(PWN_MOTOR_OUT, targetPulses);  //motor_pwm);
+
+    lastProportionSet = effectiveProportion;
   }
+
+  return lastProportionSet;
 }
 
 
@@ -276,12 +310,12 @@ void loop() {
   int currentTemp = serviceTempProbe();
   fanManager.updateTemperature(currentTemp);
   serviceRotaryEncoder();
-  serviceFan();
+  float powerProportion = serviceFan();
 
   int tempToShow = currentTemp;
   if (showNewTarget.isWaiting()) {
     tempToShow = fanManager.getTargetTemperature();
   }
 
-  serviceLedMatrix(tempToShow);
+  serviceLedMatrix(tempToShow, powerProportion);
 }
