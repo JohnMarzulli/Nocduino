@@ -35,7 +35,9 @@ MD_Parola myDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 int lastTempShown = 0;
 float lastProportionSet = 0.0;
 
+#ifdef SERIAL_DEBUG_OUTPUT
 int serialSpamLimiter = 0;
+#endif  // SERIAL_DEBUG_OUTPUT
 
 void setupMatrix() {
   myDisplay.begin();
@@ -64,6 +66,7 @@ void serviceLedMatrix(
     lastTempShown = tempToShow;
   }
 
+#ifdef SERIAL_DEBUG_OUTPUT
   ++serialSpamLimiter;
 
   if (serialSpamLimiter == 5000) {
@@ -74,14 +77,15 @@ void serviceLedMatrix(
 
     serialSpamLimiter = 0;
   }
+#endif  // SERIAL_DEBUG_OUTPUT
 
-  for (int ledIndex = 0; ledIndex <= 7; ++ledIndex) {
+  for (int ledIndex = 1; ledIndex <= 7; ++ledIndex) {
     myDisplay.getGraphicObject()->setPoint(7 - ledIndex, 0, ledIndex <= (ledsToShow - 1));
   }
 
-  if (ledsToShow <= 0.1) {
-    myDisplay.getGraphicObject()->setPoint(7, 0, isBlink);
-  }
+  bool isLastLedLit = (ledsToShow > 0) || isBlink;
+
+  myDisplay.getGraphicObject()->setPoint(7, 0, isLastLedLit);
 }
 
 /*** TEMP PROBE ***/
@@ -131,20 +135,26 @@ int serviceTempProbe() {
   if (isnan(event.temperature)) {
     Serial.println(F("Error reading temperature!"));
   } else {
-    Serial.print(F("Temperature: "));
     currentTemp = event.temperature;
+#ifdef SERIAL_DEBUG_OUTPUT
+    Serial.print(F("Temperature: "));
     Serial.print(currentTemp);
     Serial.println(F("°C"));
+#endif  // SERIAL_DEBUG_OUTPUT
   }
+
   // Get humidity event and print its value.
   dht.humidity().getEvent(&event);
   if (isnan(event.relative_humidity)) {
     Serial.println(F("Error reading humidity!"));
-  } else {
+  }
+#ifdef SERIAL_DEBUG_OUTPUT
+  else {
     Serial.print(F("Humidity: "));
     Serial.print(event.relative_humidity);
     Serial.println(F("%"));
   }
+#endif  // SERIAL_DEBUG_OUTPUT
 
   return getFarenheitFromCelsius(currentTemp);
 }
@@ -260,8 +270,10 @@ float serviceFan() {
 
     bool isRunning = fanManager.isFanRunning();
 
+#ifdef SERIAL_DEBUG_OUTPUT
     Serial.print(F("serviceFan(): Running = "));
     Serial.println(isRunning);
+#endif  // SERIAL_DEBUG_OUTPUT
 
     // This should be one of the only two variables you really
     // have to mess with in addition to the period:
@@ -272,8 +284,9 @@ float serviceFan() {
 
     targetPulses = isRunning ? targetPulses : stoppedPulses;
 
-    float effectiveProportion = (float)targetPulses  / (float)maxPulses;
+    float effectiveProportion = (float)targetPulses / (float)maxPulses;
 
+#ifdef SERIAL_DEBUG_OUTPUT
     Serial.print(F("serviceFan(): targetPulses = "));
     Serial.println(targetPulses);
 
@@ -285,6 +298,7 @@ float serviceFan() {
 
     Serial.print(F("serviceFan(): motorPwm = "));
     Serial.println(motorPwm);
+#endif  // SERIAL_DEBUG_OUTPUT
 
     analogWrite(PWN_MOTOR_OUT, targetPulses);  //motor_pwm);
 
