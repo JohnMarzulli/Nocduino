@@ -5,6 +5,7 @@
 // You will need to install the following packages:
 // "MD_Parola" by majicDesigns - https://github.com/MajicDesigns/MD_Parola
 //                               https://github.com/MajicDesigns/MD_MAX72XX/blob/main/examples/MD_MAX72xx_Test/MD_MAX72xx_Test.ino
+//                               https://majicdesigns.github.io/MD_Parola/class_m_d___parola.html#a45d97a582ca1adabfe5cb40d66c4bbd2
 // "DHT Sensor Library" by AdaFruit - https://github.com/adafruit/DHT-sensor-library
 // "Button2" by Lennart Hunnigs - https://github.com/LennartHennigs/Button2
 // "Rotary" by KAthiR - https://github.com/skathir38/Rotary
@@ -35,6 +36,12 @@ MD_Parola myDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 int lastTempShown = 0;
 float lastProportionSet = 0.0;
 
+const int INTENSITY_BRIGHT = 15;
+const int INTENSITY_MID = 7;
+const int INTENSITY_DIM = 0;
+
+const int DISPLAY_INTENSITY = INTENSITY_DIM;
+
 #ifdef SERIAL_DEBUG_OUTPUT
 int serialSpamLimiter = 0;
 #endif  // SERIAL_DEBUG_OUTPUT
@@ -42,7 +49,8 @@ int serialSpamLimiter = 0;
 void setupMatrix() {
   myDisplay.begin();
 
-  myDisplay.setIntensity(0);
+  myDisplay.setIntensity(DISPLAY_INTENSITY);
+  myDisplay.setInvert(0);
   myDisplay.displayClear();
 }
 
@@ -58,7 +66,8 @@ void serviceLedMatrix(
 
   if (tempToShow != lastTempShown) {
     myDisplay.displayClear();
-    myDisplay.setIntensity(0);
+    myDisplay.setIntensity(DISPLAY_INTENSITY);
+    myDisplay.setInvert(0);
     myDisplay.setTextAlignment(PA_CENTER);
     // add the text
     String text = String(tempToShow);  // + String("F");
@@ -80,12 +89,18 @@ void serviceLedMatrix(
 #endif  // SERIAL_DEBUG_OUTPUT
 
   for (int ledIndex = 1; ledIndex <= 7; ++ledIndex) {
-    myDisplay.getGraphicObject()->setPoint(7 - ledIndex, 0, ledIndex <= (ledsToShow - 1));
+    bool isShown = ledIndex <= (ledsToShow - 1);
+    int vertIndex = 7 - ledIndex;
+    // Right edge
+    myDisplay.getGraphicObject()->setPoint(vertIndex, 0, isShown);
+    // Left edge
+    myDisplay.getGraphicObject()->setPoint(vertIndex, 31, isShown);
   }
 
   bool isLastLedLit = (ledsToShow > 0) || isBlink;
 
   myDisplay.getGraphicObject()->setPoint(7, 0, isLastLedLit);
+  myDisplay.getGraphicObject()->setPoint(7, 31, isLastLedLit);
 }
 
 /*** TEMP PROBE ***/
