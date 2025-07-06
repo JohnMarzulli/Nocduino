@@ -27,8 +27,6 @@ SensorManager sensorManager(SensorManager::DHT_PIN);
 FanDriver fanDriver;
 InputManager inputManager(&temperatureManager);
 
-/*** MAIN ***/
-
 void setup() {
   Serial.begin(SERIAL_SPEED);  // 115200);
 
