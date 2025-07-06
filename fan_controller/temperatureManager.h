@@ -1,11 +1,11 @@
-#ifndef FAN_CONTROLLER_RENDERER_H
-#define FAN_CONTROLLER_RENDERER_H
+#ifndef TEMPERATURE_MANAGER_H
+#define TEMPERATURE_MANAGER_H
 
 // NOTE: All temps are in F
 
-class FanManager {
+class TemperatureManager {
 public:
-  FanManager(
+  TemperatureManager(
     int newTargetTemperature) {
     targetTemperature = newTargetTemperature;
     currentTemperature = newTargetTemperature;
@@ -76,4 +76,4 @@ private:
   const int targetDelta = 2;
 };
 
-#endif  // FAN_CONTROLLER_RENDERER_H
+#endif  // TEMPERATURE_MANAGER_H
