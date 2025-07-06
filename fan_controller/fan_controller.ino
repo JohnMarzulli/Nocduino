@@ -37,12 +37,12 @@ void setup() {
 }
 
 void loop() {
-  int currentTemp = sensorManager.serviceTempProbe();
-  temperatureManager.updateTemperature(currentTemp);
+  sensorManager.serviceTempProbe();
+  temperatureManager.updateTemperature(sensorManager);
   inputManager.serviceRotaryEncoder();
   float powerProportion = fanDriver.serviceFan(temperatureManager);
 
-  int tempToShow = currentTemp;
+  int tempToShow = sensorManager.GetCurrentTemperature();
   if (showNewTarget.isWaiting()) {
     tempToShow = temperatureManager.getTargetTemperature();
   }

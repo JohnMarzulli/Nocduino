@@ -25,6 +25,10 @@ public:
     int sensorPin) {
   }
 
+  int GetCurrentTemperature() {
+    return lastTempMeasured;
+  }
+
   void setupTempProbe() {
     dht.begin();
     sensor_t sensor;

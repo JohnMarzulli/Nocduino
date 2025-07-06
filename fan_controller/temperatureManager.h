@@ -53,7 +53,10 @@ public:
     return proportion;
   }
 
-  void updateTemperature(int newTemperature) {
+  void updateTemperature(
+    SensorManager& sensorManager) {
+
+    int newTemperature = sensorManager.GetCurrentTemperature();
     int fanStartTemperature = targetTemperature + targetDelta;
     int fanStopTemperature = targetTemperature - targetDelta;
 
@@ -65,8 +68,6 @@ public:
       isFanOn = true;
     }
   }
-
-
 
 private:
   int targetTemperature;
