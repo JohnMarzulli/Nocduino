@@ -23,6 +23,9 @@ public:
 
   SensorManager(
     int sensorPin) {
+
+    probeInterval = new StopWatch(2000);
+    dht = new DHT_Unified(DHT_PIN, DHTTYPE);
   }
 
   int GetCurrentTemperature() {
@@ -30,25 +33,25 @@ public:
   }
 
   void setupTempProbe() {
-    dht.begin();
+    dht->begin();
     sensor_t sensor;
-    dht.temperature().getSensor(&sensor);
+    dht->temperature().getSensor(&sensor);
     // Print humidity sensor details.
-    dht.humidity().getSensor(&sensor);
+    dht->humidity().getSensor(&sensor);
     // Set delay between sensor readings based on sensor details.
-    probeInterval = StopWatch(sensor.min_delay / 1000);
+    probeInterval = new StopWatch(sensor.min_delay / 1000);
   }
 
   int serviceTempProbe() {
     float currentTemp = -255;
     // Delay between measurements.
-    if (!probeInterval.shouldRun()) {
+    if (!probeInterval->shouldRun()) {
       return lastTempMeasured;
     }
 
     // Get temperature event and print its value.
     sensors_event_t event;
-    dht.temperature().getEvent(&event);
+    dht->temperature().getEvent(&event);
     if (isnan(event.temperature)) {
       Serial.println(F("Error reading temperature!"));
     } else {
@@ -61,7 +64,7 @@ public:
     }
 
     // Get humidity event and print its value.
-    dht.humidity().getEvent(&event);
+    dht->humidity().getEvent(&event);
     if (isnan(event.relative_humidity)) {
       Serial.println(F("Error reading humidity!"));
     }
@@ -86,11 +89,11 @@ private:
 
   int lastTempMeasured = 0;
 
-  StopWatch probeInterval = StopWatch(2000);
+  StopWatch* probeInterval;
   // See guide for details on sensor wiring and usage:
   //   https://learn.adafruit.com/dht/overview
 
-  DHT_Unified dht = DHT_Unified(DHT_PIN, DHTTYPE);
+  DHT_Unified* dht;
 
   const int DHTTYPE = DHT22;  // DHT 22 (AM2302)
 };
