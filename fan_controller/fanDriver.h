@@ -24,7 +24,7 @@ public:
     // this is for a period of 1 second (1000 ms). Adjust as needed:
     uint32_t period = 1000;
     const int maxPulses = 512;
-    const int minPulses = 128;
+    const int minPulses = 64; //128;
     const int stoppedPulses = 0;
 
     // Get the current pulse counter and reset it to 0 if we have
