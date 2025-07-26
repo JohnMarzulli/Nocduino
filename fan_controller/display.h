@@ -29,7 +29,8 @@ public:
 
   void serviceLedMatrix(
     int tempToShow,
-    float fanPowerProportion) {
+    float fanPowerProportion,
+    char targetSuffix) {
 
     fanPowerProportion = fanPowerProportion >= 1.0 ? 1.0 : fanPowerProportion;
     fanPowerProportion = fanPowerProportion <= 0.0 ? 0.0 : fanPowerProportion;
@@ -43,7 +44,7 @@ public:
       myDisplay.setInvert(0);
       myDisplay.setTextAlignment(PA_CENTER);
       // add the text
-      String text = String(tempToShow);  // + String("F");
+      String text = String(tempToShow) + String(targetSuffix);
       myDisplay.print(text);
       lastTempShown = tempToShow;
     }

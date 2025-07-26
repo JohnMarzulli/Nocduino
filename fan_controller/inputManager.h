@@ -1,7 +1,8 @@
 #ifndef INPUT_MANAGER_H
 #define INPUT_MANAGER_H
 
-StopWatch showNewTarget(1000);
+typedef void (*RotateFunction)(class Rotary &);
+typedef void (*ClickFunction)(Button2 &btn);
 
 class InputManager {
 public:
@@ -10,11 +11,10 @@ public:
     _temperatureManager = manager;
   }
 
-  bool isShowingNewTarget() {
-    return showNewTarget.isWaiting();
-  }
-
-  void setupRotaryEncoder() {
+  void setupRotaryEncoder(
+    ClickFunction clickHandler,
+    RotateFunction clockwiseHandler,
+    RotateFunction counterClockwiseHandler) {
     Serial.println("Setup rotary encoder");
 
     pinMode(ROTARY_POWER_PIN, OUTPUT);
@@ -22,11 +22,11 @@ public:
     delay(100);  // give it some time to power up
 
     r.begin(ROTARY_PIN1, ROTARY_PIN2, CLICKS_PER_STEP);
-    r.setLeftRotationHandler(InputManager::increaseTargetTemp);
-    r.setRightRotationHandler(InputManager::decreaseTargetTemp);
+    r.setLeftRotationHandler(clockwiseHandler);
+    r.setRightRotationHandler(counterClockwiseHandler);
 
     b.begin(BUTTON_PIN);
-    b.setTapHandler(InputManager::click);
+    b.setTapHandler(clickHandler);
 
     Serial.println("Handlers set.");
   }
@@ -37,25 +37,6 @@ public:
   }
 
 private:
-  static void increaseTargetTemp(Rotary &r) {
-    _temperatureManager->increaseTargetTemperature();
-    Serial.print("targetTemp() => ");
-    Serial.println(_temperatureManager->getTargetTemperature());
-    showNewTarget.reset();
-  }
-
-  static void decreaseTargetTemp(Rotary &r) {
-    _temperatureManager->decreaseTargetTemperature();
-    Serial.print("targetTemp() => ");
-    Serial.println(_temperatureManager->getTargetTemperature());
-    showNewTarget.reset();
-  }
-
-  // single click
-  static void click(Button2 &btn) {
-    Serial.println("Click!");
-  }
-
   Rotary r;
   Button2 b;
 

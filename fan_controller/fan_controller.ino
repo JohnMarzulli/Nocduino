@@ -16,36 +16,89 @@
 #include "temperatureManager.h"
 #include "stopWatch.h"
 #include "display.h"
-#include "fanDriver.h"
+#include "temperatureBasedFanManager.h"
+#include "powerBasedFanManager.h"
 #include "inputManager.h"
 
 const int SERIAL_SPEED = 9600;
 
+enum ControlMode {
+  Temperature = 0,
+  FanSpeed
+};
+
+ControlMode controlMode(ControlMode::Temperature);
 TemperatureManager temperatureManager(67);
 MatrixDisplay display(MatrixDisplay::INTENSITY_DIM);
 SensorManager sensorManager(SensorManager::DHT_PIN);
-FanDriver fanDriver;
+TemperatureBasedFanManager temperatureBasedFanManager;
+PowerBasedFanManager powerBasedFanManager;
 InputManager inputManager(&temperatureManager);
+StopWatch showNewTarget(1000);
+
+void handleKnobClick(Button2 &btn) {
+  if (controlMode == ControlMode::Temperature) {
+    controlMode = ControlMode::FanSpeed;
+  } else {
+    controlMode = ControlMode::Temperature;
+  }
+
+  showNewTarget.reset();
+}
+
+void handleKnobClockwise(Rotary &r) {
+  if (controlMode == ControlMode::Temperature) {
+    temperatureManager.increaseTargetTemperature();
+  } else {
+    powerBasedFanManager.increasePower();
+  }
+
+  showNewTarget.reset();
+}
+
+void handleKnobCounterClockwise(Rotary &r) {
+  if (controlMode == ControlMode::Temperature) {
+    temperatureManager.decreaseTargetTemperature();
+  } else {
+    powerBasedFanManager.decreasePower();
+  }
+
+  showNewTarget.reset();
+}
 
 void setup() {
   Serial.begin(SERIAL_SPEED);  // 115200);
 
   sensorManager.setupTempProbe();
-  inputManager.setupRotaryEncoder();
-  fanDriver.setupPwmFan();
+  inputManager.setupRotaryEncoder(handleKnobClick, handleKnobClockwise, handleKnobCounterClockwise);
+  temperatureBasedFanManager.setupPwmFan();
   display.setupMatrix();
 }
 
 void loop() {
+  bool isTempTarget = controlMode == ControlMode::Temperature;
   sensorManager.serviceTempProbe();
   temperatureManager.updateTemperature(sensorManager);
   inputManager.serviceRotaryEncoder();
-  float powerProportion = fanDriver.serviceFan(temperatureManager);
+  float powerProportion = 1.0;
 
-  int tempToShow = sensorManager.GetCurrentTemperature();
-  if (showNewTarget.isWaiting()) {
-    tempToShow = temperatureManager.getTargetTemperature();
+  if (isTempTarget) {
+    powerProportion = temperatureBasedFanManager.serviceFan(temperatureManager);
+  } else {
+    powerProportion = powerBasedFanManager.serviceFan();
   }
 
-  display.serviceLedMatrix(tempToShow, powerProportion);
+  int targetToShow = sensorManager.GetCurrentTemperature();
+  char targetSuffix = 'F';
+
+  if (showNewTarget.isWaiting()) {
+    targetToShow = isTempTarget
+                     ? temperatureManager.getTargetTemperature()
+                     : (int)(powerProportion * 100.0);
+    targetSuffix = isTempTarget
+                      ? 'F'
+                      : '%';
+  }
+
+  display.serviceLedMatrix(targetToShow, powerProportion, targetSuffix);
 }
