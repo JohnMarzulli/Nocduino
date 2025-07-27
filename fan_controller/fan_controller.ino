@@ -15,7 +15,9 @@
 #include "sensorManager.h"
 #include "temperatureManager.h"
 #include "stopWatch.h"
-#include "display.h"
+#include "display/display.h"
+#include "display/r4MatrixDisplay.h"
+#include "display/max72xxDisplay.h"
 #include "temperatureBasedFanManager.h"
 #include "powerBasedFanManager.h"
 #include "inputManager.h"
@@ -29,7 +31,7 @@ enum ControlMode {
 
 ControlMode controlMode(ControlMode::Temperature);
 TemperatureManager temperatureManager(67);
-MatrixDisplay display(MatrixDisplay::INTENSITY_DIM);
+Display *display = NULL;
 SensorManager sensorManager(SensorManager::DHT_PIN);
 TemperatureBasedFanManager temperatureBasedFanManager;
 PowerBasedFanManager powerBasedFanManager;
@@ -72,7 +74,14 @@ void setup() {
   sensorManager.setupTempProbe();
   inputManager.setupRotaryEncoder(handleKnobClick, handleKnobClockwise, handleKnobCounterClockwise);
   temperatureBasedFanManager.setupPwmFan();
-  display.setupMatrix();
+
+#ifdef ARDUINO_UNOR4_WIFI
+  display = new R4MatrixDisplay();
+#else
+  display = new Max72xxDisplay();
+#endif
+
+  display->setup();
 }
 
 void loop() {
@@ -96,9 +105,9 @@ void loop() {
                      ? temperatureManager.getTargetTemperature()
                      : (int)(powerProportion * 100.0);
     targetSuffix = isTempTarget
-                      ? 'F'
-                      : '%';
+                     ? 'F'
+                     : '%';
   }
 
-  display.serviceLedMatrix(targetToShow, powerProportion, targetSuffix);
+  display->service(targetToShow, powerProportion, targetSuffix);
 }
