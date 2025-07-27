@@ -19,7 +19,7 @@ public:
         // will only show "UNO" (not enough space on the display)
         matrix.textFont(Font_4x6);
         matrix.beginText(0, 1, 0xFFFFFF);
-        matrix.println("      ");
+        matrix.print("FAN");
         matrix.endText();
 
         matrix.endDraw();
@@ -30,43 +30,21 @@ public:
         float fanPowerProportion,
         char targetSuffix) override
     {
-        uint8_t frame[8][12] = {0};
-
-        fanPowerProportion = fanPowerProportion >= 1.0 ? 1.0 : fanPowerProportion;
-        fanPowerProportion = fanPowerProportion <= 0.0 ? 0.0 : fanPowerProportion;
-
-        int ledsToShow = static_cast<int>(fanPowerProportion * 8.0);
-        bool isBlink = (millis() % 1000) <= 500;
-
+        /*
         matrix.beginDraw();
-        bool isOneDrawn = false;
 
-        // Draw the LEDs
-        for (int i = 0; i < ledsToShow; ++i)
-        {
-            isOneDrawn = true;
+        matrix.stroke(0xFFFFFFFF);
+        matrix.textScrollSpeed(200);
 
-            frame[0][i] = 1;
-            frame[11][i] = 1;
-        }
-
-        if (!isOneDrawn)
-        {
-            frame[0][0] = isBlink;
-            frame[11][0] = isBlink;
-        }
-
-        matrix.renderBitmap(frame, 8, 12);
-
-        matrix.textFont(Font_4x6);
+        // add the text
+        String text = String(tempToShow);  // + String("F");
+        matrix.textFont(Font_5x7);
         matrix.beginText(0, 1, 0xFFFFFF);
-        String text = String(tempToShow) + String(targetSuffix);
         matrix.println(text);
-        matrix.endText(NO_SCROLL);
-
-        lastTempShown = tempToShow;
+        matrix.endText(NO_SCROLL);  //  SCROLL_LEFT);
 
         matrix.endDraw();
+        */
     }
 
 private:

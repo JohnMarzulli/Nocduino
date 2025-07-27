@@ -45,6 +45,8 @@ void handleKnobClick(Button2 &btn) {
     controlMode = ControlMode::Temperature;
   }
 
+  Serial.println(F("Click!"));
+
   showNewTarget.reset();
 }
 
@@ -54,6 +56,8 @@ void handleKnobClockwise(Rotary &r) {
   } else {
     powerBasedFanManager.increasePower();
   }
+
+  Serial.println(F("CW!"));
 
   showNewTarget.reset();
 }
@@ -65,6 +69,8 @@ void handleKnobCounterClockwise(Rotary &r) {
     powerBasedFanManager.decreasePower();
   }
 
+  Serial.println(F("CCW!"));
+
   showNewTarget.reset();
 }
 
@@ -75,13 +81,14 @@ void setup() {
   inputManager.setupRotaryEncoder(handleKnobClick, handleKnobClockwise, handleKnobCounterClockwise);
   temperatureBasedFanManager.setupPwmFan();
 
-#ifdef ARDUINO_UNOR4_WIFI
-  Serial.print(F("Selecting R4 Matrix"));
+
+//#ifdef ARDUINO_UNOR4_WIFI
+  Serial.println(F("Selecting R4 Matrix"));
   display = new R4MatrixDisplay();
-#else
-  Serial.print(F("Selecting MAX72xx"));
-  display = new Max72xxDisplay();
-#endif
+//#else
+//  Serial.println(F("Selecting MAX72xx"));
+//  display = new Max72xxDisplay();
+//#endif
 
   display->setup();
 }
