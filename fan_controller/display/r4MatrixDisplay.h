@@ -26,7 +26,7 @@ public:
     }
 
     void service(
-        int tempToShow,
+        int numberToShow,
         float fanPowerProportion,
         char targetSuffix) override
     {
@@ -36,11 +36,11 @@ public:
         matrix.textScrollSpeed(200);
 
         // add the text
-        String text = String(tempToShow);  // + String("F");
-        matrix.textFont(Font_5x7);
+        String text = String(numberToShow) + String(targetSuffix);
+        matrix.textFont(Font_4x6);
         matrix.beginText(0, 1, 0xFFFFFF);
         matrix.println(text);
-        matrix.endText(NO_SCROLL);  //  SCROLL_LEFT);
+        matrix.endText(NO_SCROLL);
 
         matrix.endDraw();
     }
