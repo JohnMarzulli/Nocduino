@@ -30,7 +30,7 @@ public:
         float fanPowerProportion,
         char targetSuffix) override
     {
-        uint8_t frame[8][12];
+        uint8_t frame[8][12] = {0};
 
         fanPowerProportion = fanPowerProportion >= 1.0 ? 1.0 : fanPowerProportion;
         fanPowerProportion = fanPowerProportion <= 0.0 ? 0.0 : fanPowerProportion;

@@ -76,8 +76,10 @@ void setup() {
   temperatureBasedFanManager.setupPwmFan();
 
 #ifdef ARDUINO_UNOR4_WIFI
+  Serial.print(F("Selecting R4 Matrix"));
   display = new R4MatrixDisplay();
 #else
+  Serial.print(F("Selecting MAX72xx"));
   display = new Max72xxDisplay();
 #endif
 
