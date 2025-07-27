@@ -30,5 +30,5 @@
 // CLK = [pin 5]
 // DT = [pin 4]
 // SW = [pin 6] (Button)
-// + = [Pin 5V]
+// + = [Pin 8]
 // GND = [pin GND]
