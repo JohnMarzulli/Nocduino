@@ -30,7 +30,6 @@ public:
         float fanPowerProportion,
         char targetSuffix) override
     {
-        /*
         matrix.beginDraw();
 
         matrix.stroke(0xFFFFFFFF);
@@ -44,7 +43,6 @@ public:
         matrix.endText(NO_SCROLL);  //  SCROLL_LEFT);
 
         matrix.endDraw();
-        */
     }
 
 private:
